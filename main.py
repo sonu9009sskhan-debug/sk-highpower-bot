@@ -1,15 +1,14 @@
 import asyncio
-import random
-from flask import Flask
-from threading import Thread
-from pyrogram import Client, filters
-
-# Setup
 try:
     asyncio.get_event_loop()
 except RuntimeError:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
+
+from pyrogram import Client, filters
+import random
+from flask import Flask
+from threading import Thread
 
 # Flask (24/7)
 web_app = Flask('')
@@ -46,4 +45,4 @@ async def handler(client, message):
 if __name__ == "__main__":
     keep_alive()
     app.run()
-  
+    
