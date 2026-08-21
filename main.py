@@ -1,101 +1,70 @@
 import asyncio
+import random
+from pyrogram import Client, filters
+
+# Asyncio loop fix as per your requirement
 try:
     asyncio.get_event_loop()
 except RuntimeError:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-import os
-from pyrogram import Client, filters
-import google.generativeai as genai
-import random
-import time
-from flask import Flask
-from threading import Thread
+# Credentials (Get api_id & api_hash from my.telegram.org)
+API_ID = 1234567  
+API_HASH = "your_api_hash"
+BOT_TOKEN = "7610806090:AAG3BtpM8XHkf9cpo0HzecQZ0j536MzbKw8"
 
-# Bot Token & Configuration
-TELEGRAM_BOT_TOKEN = "7610806090:AAGCMhZnwNsL2EdJyuKEucfL5ZcCiVw0Nv8"
-GEMINI_API_KEY = os.environ.get('GEMINI_KEY', 'YOUR_GEMINI_API_KEY_HERE')
-GROUP_ID = os.environ.get('GROUP_ID', '-100123456789')
+app = Client("my_ai_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-OWNER_DM_LINK = "https://t.me/YOUR_USERNAME"  
-GROUP_LINK = "https://t.me/YOUR_GROUP_LINK"       
-BAD_WORDS = ['badword1', 'porn', 'sex', 'xxx', 'chutiya'] 
+# Your Links
+DM_LINK = "https://t.me/SK_KING_CHILL"
+GROUP_LINK = "https://t.me/SK_Chatting_Club"
 
-TOPICS = [
-    "Hey everyone! What's the most interesting thing you learned today?",
-    "If you could travel anywhere in the world right now, where would you go?",
-    "What's your favorite hobby or way to relax?",
-    "Does anyone have any cool tech tips or tricks to share today?",
-    "What's a movie or show you'd recommend to everyone here?",
-    "If you could have dinner with any famous person, who would it be?"
-]
+# List of emojis to react automatically
+REACTIONS = ["👍", "❤️", "🔥", "⚡", "👏", "🎉"]
 
-# Gemini AI Setup
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
+@app.on_message(filters.command("start"))
+async def start(client, message):
+    await message.reply_text("Hello! I am your AI Group Manager and Reaction Bot. 🤖")
 
-# Pyrogram Bot Setup
-app_bot = Client(
-    "ai_mod_bot",
-    api_id=int(os.environ.get("API_ID", "123456")), 
-    api_hash=os.environ.get("API_HASH", "YOUR_API_HASH"),
-    bot_token=TELEGRAM_BOT_TOKEN
-)
-
-# Flask Server for 24/7 Uptime
-app = Flask('')
-@app.route('/')
-def home():
-    return "Bot is alive!"
-
-def run():
-    app.run(host='0.0.0.0', port=8080)
-
-def auto_topic_starter():
-    while True:
-        time.sleep(3600)  # Wait for 1 hour
-        random_topic = random.choice(TOPICS)
-        try:
-            app_bot.send_message(int(GROUP_ID), f"💡 **Topic of the hour:** {random_topic}")
-        except Exception as e:
-            print(f"Error sending topic: {e}")
-
-# --- Handlers ---
-@app_bot.on_message(filters.command(["start", "help"]))
-async def send_welcome(client, message):
-    await message.reply_text("I'm your AI Bot! I keep the group active and answer your questions. 🤖")
-
-@app_bot.on_message(filters.text & ~filters.private)
-async def handle_group_messages(client, message):
-    text_lower = message.text.lower()
-    
-    # 1. Bad Words Filter
-    if any(word in text_lower for word in BAD_WORDS):
-        try:
-            await message.delete()
-            return
-        except:
-            pass
-
-    # 2. Owner Info Handler
-    if any(word in text_lower for word in ['owner', 'admin', 'malik']):
-        await message.reply_text(f"Contact Owner: {OWNER_DM_LINK}\nJoin Group: {GROUP_LINK}")
-        return
-
-    # 3. Gemini AI Response
+# Anti-link system (Deletes links automatically)
+@app.on_message(filters.regex(r'https?://\S+') & ~filters.me)
+async def block_links(client, message):
     try:
-        response = model.generate_content(message.text)
-        await message.reply_text(response.text)
+        await message.delete()
+        await message.reply_text("⚠️ Links are not allowed in this group!")
     except Exception as e:
-        print(f"AI Error: {e}")
+        print(f"Error deleting link: {e}")
 
-if __name__ == "__main__":
-    t1 = Thread(target=run)
-    t1.start()
+# Main AI Chat, DM/Group Links & Auto Reaction System
+@app.on_message(filters.text & ~filters.command("start"))
+async def ai_and_links_handler(client, message):
+    text = message.text.lower()
     
-    t2 = Thread(target=auto_topic_starter)
-    t2.start()
+    # 1. Automatic Emoji Reaction on incoming messages
+    try:
+        random_emoji = random.choice(REACTIONS)
+        await message.set_reaction(random_emoji)
+    except Exception as e:
+        print(f"Reaction error (Make sure bot is admin): {e}")
+
+    # 2. DM Link Response
+    if "dm" in text or "message" in text or "inbox" in text:
+        await message.reply_text(f"Contact me directly here:\n👉 {DM_LINK}")
     
-    app_bot.run()
-            
+    # 3. Group Link Response
+    elif "group" in text or "link" in text or "join" in text:
+        await message.reply_text(f"Join our official group here:\n👉 {GROUP_LINK}")
+    
+    # 4. Hi / Hello Response
+    elif "hello" in text or "hi" in text or "hey" in text:
+        await message.reply_text("Hello! 😊 How can I help you today?")
+    
+    # 5. AI Style Smart Reply (General fallback)
+    else:
+        # Here you can plug in OpenAI/Gemini API response if needed
+        await message.reply_text(f"🤖 I heard that: \"{message.text}\". I'm processing your request!")
+
+print("Bot is running smoothly with AI, Links, and Reactions...")
+app.run()
+        
