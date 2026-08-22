@@ -1,13 +1,4 @@
-import asyncio
-import os
-import random
-from pyrogram import Client, filters
-import google.generativeai as genai
 
-# ============================================================
-# ⚠️ SCREENSHOT WALI ASYNCIO FIX (Sabse Upar)
-# ============================================================
-try:
   asyncio.get_event_loop()
 except RuntimeError:
   loop = asyncio.new_event_loop()
